@@ -30,8 +30,6 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 
 /**
@@ -55,14 +53,14 @@ public final class Searcher {
 
   public void nextPage() throws IOException {
     if (isFirstQuery) {
-      final Document doc = Jsoup.parse(new URL(String.format("https://twitter.com/search?q=%s&src=tren", URLEncoder.encode(this.keyword, "UTF-8"))), (int)TimeUnit.MINUTES.toMillis(1));
+      final Document doc = Jsoup.parse(new URL(String.format("https://twitter.com/search?q=%s", URLEncoder.encode(this.keyword, "UTF-8"))), (int)TimeUnit.MINUTES.toMillis(1));
       this.tweets = parseDocument(doc);
       this.isFirstQuery = false;
       this.cursor = doc.select("div.stream-container").attr("data-scroll-cursor");
       this.hasNext = this.cursor != null;
     } else {
       final URL url = new URL(
-        String.format("https://twitter.com/i/search/timeline?q=%s&src=tren&include_available_features=1&include_entities=1&scroll_cursor=%s", URLEncoder.encode(this.keyword, "UTF-8"), this.cursor));
+        String.format("https://twitter.com/i/search/timeline?q=%s&include_available_features=1&include_entities=1&scroll_cursor=%s", URLEncoder.encode(this.keyword, "UTF-8"), this.cursor));
       final JSONObject json = parseJson(url);
       this.hasNext = json.has("scroll_cursor");
       if (this.hasNext) {
@@ -104,22 +102,6 @@ public final class Searcher {
 
   public boolean hasNextPage() {
     return isFirstQuery || this.hasNext;
-  }
-
-  public static void main(String[] args) throws IOException, InterruptedException {
-    final Searcher searcher = new Searcher("背脂");
-    final Pattern p = Pattern.compile("^.*?(pic\\.twitter\\.com/[a-zA-Z0-9]+?)$");
-
-    while (searcher.hasNextPage()) {
-      searcher.nextPage();
-      for (Tweet t : searcher.getResults()) {
-        final Matcher m = p.matcher(t.getMessage());
-        if (m.matches()) {
-          System.out.println(new URL("https://" + m.group(1)));
-        }
-      }
-      Thread.sleep(5000);
-    }
   }
 
 }
